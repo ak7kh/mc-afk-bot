@@ -9,19 +9,19 @@ const MC_SERVER_PORT = 41806;
 const BOT_USERNAME = 'AK7_Bot';
 // =============================================
 
-// خادم ويب وهمي لاجتياز فحص المنصة
+// استخدام منفذ ديناميكي تتطلبه Back4App
+const PORT = process.env.PORT || 8080;
 const server = http.createServer((req, res) => {
     res.writeHead(200);
     res.end('Bot is alive!');
 });
-server.listen(8080, () => console.log('Web server running on 8080'));
+server.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 
 const bot = new Telegraf(TELEGRAM_TOKEN);
 let mcClient = null;
 let movementInterval = null;
 let currentYaw = 0;
 
-// نظام الحركة لمنع الـ AFK
 const startAntiAfkLoop = () => {
     if (movementInterval) clearInterval(movementInterval);
     movementInterval = setInterval(() => {
@@ -47,18 +47,15 @@ const stopAntiAfkLoop = () => {
     }
 };
 
-// لوحة الأزرار الثابتة
 const keyboard = Markup.keyboard([
     ['🟢 دخول السيرفر (Start)'],
     ['🔴 الخروج من السيرفر (Stop)']
 ]).resize();
 
-// إظهار الأزرار عند إرسال /start
 bot.start((ctx) => {
     ctx.reply("أهلاً بك! استخدم الأزرار للتحكم:", keyboard);
 });
 
-// أوامر الدخول والخروج
 bot.hears(['🟢 دخول السيرفر (Start)', '/start_afk'], (ctx) => {
     if (mcClient) return ctx.reply("⚠️ البوت متصل بالسيرفر بالفعل!");
     
@@ -97,8 +94,10 @@ bot.hears(['🔴 الخروج من السيرفر (Stop)', '/stop_afk'], (ctx) =
     ctx.reply("🛑 تم الخروج من السيرفر بنجاح.");
 });
 
-bot.launch().then(() => console.log("🤖 البوت يعمل الآن بكفاءة!"));
+// اصطياد الأخطاء المخفية أثناء محاولة الاتصال بتيليجرام
+bot.launch()
+    .then(() => console.log("🤖 البوت يعمل الآن بكفاءة متصلاً بتيليجرام!"))
+    .catch((err) => console.error("❌ خطأ قاتل أثناء تشغيل بوت تيليجرام:", err));
 
-// إغلاق آمن للبوت عند إيقاف الخادم
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
