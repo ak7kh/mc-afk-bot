@@ -7,6 +7,6 @@
   },
   "dependencies": {
     "bedrock-protocol": "*",
-    "node-telegram-bot-api": "*"
+    "telegraf": "^4.16.3"
   }
 }
