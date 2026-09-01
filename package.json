@@ -1,0 +1,12 @@
+{
+  "name": "mc-afk-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "bedrock-protocol": "latest",
+    "node-telegram-bot-api": "latest"
+  }
+}
