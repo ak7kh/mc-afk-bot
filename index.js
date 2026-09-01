@@ -65,7 +65,8 @@ bot.hears(['🟢 دخول السيرفر (Start)', '/start_afk'], (ctx) => {
             host: MC_SERVER_IP,
             port: MC_SERVER_PORT,
             username: BOT_USERNAME,
-            offline: true 
+            offline: true,
+            version: '1.26.0' // إضافة إصدار اللعبة لتجنب فشل المصافحة مع السيرفر
         });
 
         mcClient.on('join', () => {
@@ -73,11 +74,20 @@ bot.hears(['🟢 دخول السيرفر (Start)', '/start_afk'], (ctx) => {
             startAntiAfkLoop();
         });
 
-        mcClient.on('disconnect', () => {
-            ctx.reply("❌ تم فصل البوت من السيرفر.");
+        mcClient.on('disconnect', (packet) => {
+            const reason = typeof packet === 'string' ? packet : 'تم إغلاق الاتصال';
+            ctx.reply(`❌ تم فصل البوت من السيرفر. السبب: ${reason}`);
             stopAntiAfkLoop();
             mcClient = null;
         });
+
+        // التقاط أخطاء الاتصال المخفية لمنع تعليق البوت
+        mcClient.on('error', (err) => {
+            ctx.reply(`⚠️ فشل الاتصال بالسيرفر: ${err.message}`);
+            stopAntiAfkLoop();
+            mcClient = null;
+        });
+
     } catch (error) {
         ctx.reply(`حدث خطأ أثناء الاتصال: ${error.message}`);
         stopAntiAfkLoop();
