@@ -9,7 +9,6 @@ const MC_SERVER_PORT = 41806;
 const BOT_USERNAME = 'AK7_Bot';
 // =============================================
 
-// استخدام منفذ ديناميكي تتطلبه Back4App
 const PORT = process.env.PORT || 8080;
 const server = http.createServer((req, res) => {
     res.writeHead(200);
@@ -66,7 +65,7 @@ bot.hears(['🟢 دخول السيرفر (Start)', '/start_afk'], (ctx) => {
             port: MC_SERVER_PORT,
             username: BOT_USERNAME,
             offline: true,
-            version: '1.26.0' // إضافة إصدار اللعبة لتجنب فشل المصافحة مع السيرفر
+            version: '1.26.0' 
         });
 
         mcClient.on('join', () => {
@@ -81,15 +80,14 @@ bot.hears(['🟢 دخول السيرفر (Start)', '/start_afk'], (ctx) => {
             mcClient = null;
         });
 
-        // التقاط أخطاء الاتصال المخفية لمنع تعليق البوت
         mcClient.on('error', (err) => {
-            ctx.reply(`⚠️ فشل الاتصال بالسيرفر: ${err.message}`);
+            ctx.reply(`⚠️ مشكلة في الاتصال: ${err.message}`);
             stopAntiAfkLoop();
             mcClient = null;
         });
 
     } catch (error) {
-        ctx.reply(`حدث خطأ أثناء الاتصال: ${error.message}`);
+        ctx.reply(`حدث خطأ: ${error.message}`);
         stopAntiAfkLoop();
         mcClient = null;
     }
@@ -104,10 +102,17 @@ bot.hears(['🔴 الخروج من السيرفر (Stop)', '/stop_afk'], (ctx) =
     ctx.reply("🛑 تم الخروج من السيرفر بنجاح.");
 });
 
-// اصطياد الأخطاء المخفية أثناء محاولة الاتصال بتيليجرام
-bot.launch()
-    .then(() => console.log("🤖 البوت يعمل الآن بكفاءة متصلاً بتيليجرام!"))
-    .catch((err) => console.error("❌ خطأ قاتل أثناء تشغيل بوت تيليجرام:", err));
+bot.launch().then(() => console.log("🤖 البوت متصل بتيليجرام!"));
+
+// ================= درع الحماية من الانهيار =================
+process.on('uncaughtException', (err) => {
+    console.log("⚠️ تم التقاط خطأ مخفي ومنع البوت من الانهيار:", err.message);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.log("⚠️ تم التقاط رفض غير معالج ومنع البوت من الانهيار:", reason);
+});
+// =========================================================
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
