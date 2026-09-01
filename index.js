@@ -1,4 +1,4 @@
-const TelegramBot = require('node-telegram-bot-api');
+const { Telegraf, Markup } = require('telegraf');
 const bedrock = require('bedrock-protocol');
 const http = require('http');
 
@@ -9,48 +9,34 @@ const MC_SERVER_PORT = 41806;
 const BOT_USERNAME = 'AK7_Bot';
 // =============================================
 
-// إعداد خادم ويب وهمي لمنصة الاستضافة
+// خادم ويب وهمي لاجتياز فحص المنصة
 const server = http.createServer((req, res) => {
     res.writeHead(200);
-    res.end('Bot is running alive!');
+    res.end('Bot is alive!');
 });
-server.listen(8080, () => {
-    console.log('Web server is listening on port 8080');
-});
+server.listen(8080, () => console.log('Web server running on 8080'));
 
-const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
+const bot = new Telegraf(TELEGRAM_TOKEN);
 let mcClient = null;
 let movementInterval = null;
 let currentYaw = 0;
 
-// دالة تدوير البوت وتحريكه لمنع الـ AFK
+// نظام الحركة لمنع الـ AFK
 const startAntiAfkLoop = () => {
     if (movementInterval) clearInterval(movementInterval);
-
-    // التحرك كل 45 ثانية
     movementInterval = setInterval(() => {
         if (!mcClient) return;
-
         try {
-            // تدوير زاوية نظر البوت بـ 45 درجة
             currentYaw = (currentYaw + 45) % 360;
-
             mcClient.queue('player_auth_input', {
-                pitch: 0,
-                yaw: currentYaw,
+                pitch: 0, yaw: currentYaw,
                 position: { x: 0, y: 0, z: 0 },
                 move_vector: { x: 0, z: 0 },
-                head_yaw: currentYaw,
-                input_data: 0,
-                input_mode: 'mouse',
-                play_mode: 'normal',
-                interaction_model: 'classic',
-                tick: 0n
+                head_yaw: currentYaw, input_data: 0,
+                input_mode: 'mouse', play_mode: 'normal',
+                interaction_model: 'classic', tick: 0n
             });
-            console.log("🔄 تم تحديث حركة البوت لتفادي الطرد.");
-        } catch (err) {
-            console.error("خطأ أثناء إرسال حزمة الحركة:", err.message);
-        }
+        } catch (err) {}
     }, 45000);
 };
 
@@ -61,26 +47,22 @@ const stopAntiAfkLoop = () => {
     }
 };
 
-const keyboardOptions = {
-    reply_markup: {
-        keyboard: [
-            [{ text: '🟢 دخول السيرفر (Start)' }, { text: '🔴 الخروج من السيرفر (Stop)' }]
-        ],
-        resize_keyboard: true,
-        is_persistent: true
-    }
-};
+// لوحة الأزرار الثابتة
+const keyboard = Markup.keyboard([
+    ['🟢 دخول السيرفر (Start)'],
+    ['🔴 الخروج من السيرفر (Stop)']
+]).resize();
 
-bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, "أهلاً بك! استخدم الأزرار للتحكم:", keyboardOptions);
+// إظهار الأزرار عند إرسال /start
+bot.start((ctx) => {
+    ctx.reply("أهلاً بك! استخدم الأزرار للتحكم:", keyboard);
 });
 
-const startAfk = (chatId) => {
-    if (mcClient) {
-        bot.sendMessage(chatId, "⚠️ البوت متصل بالسيرفر بالفعل!");
-        return;
-    }
-    bot.sendMessage(chatId, "⏳ جارٍ الاتصال بسيرفر ماين كرافت...");
+// أوامر الدخول والخروج
+bot.hears(['🟢 دخول السيرفر (Start)', '/start_afk'], (ctx) => {
+    if (mcClient) return ctx.reply("⚠️ البوت متصل بالسيرفر بالفعل!");
+    
+    ctx.reply("⏳ جارٍ الاتصال بسيرفر ماين كرافت...");
     try {
         mcClient = bedrock.createClient({
             host: MC_SERVER_IP,
@@ -90,43 +72,33 @@ const startAfk = (chatId) => {
         });
 
         mcClient.on('join', () => {
-            bot.sendMessage(chatId, "✅ تم دخول السيرفر بنجاح! تم تفعيل نظام منع طرد الـ AFK.");
+            ctx.reply("✅ تم دخول السيرفر بنجاح! تم تفعيل نظام منع الطرد.");
             startAntiAfkLoop();
         });
 
-        mcClient.on('disconnect', (packet) => {
-            bot.sendMessage(chatId, `❌ تم فصل البوت من السيرفر.`);
+        mcClient.on('disconnect', () => {
+            ctx.reply("❌ تم فصل البوت من السيرفر.");
             stopAntiAfkLoop();
             mcClient = null;
         });
     } catch (error) {
-        bot.sendMessage(chatId, `حدث خطأ أثناء الاتصال: ${error.message}`);
+        ctx.reply(`حدث خطأ أثناء الاتصال: ${error.message}`);
         stopAntiAfkLoop();
         mcClient = null;
     }
-};
+});
 
-const stopAfk = (chatId) => {
-    if (!mcClient) {
-        bot.sendMessage(chatId, "⚠️ البوت غير متصل بالسيرفر حالياً.");
-        return;
-    }
+bot.hears(['🔴 الخروج من السيرفر (Stop)', '/stop_afk'], (ctx) => {
+    if (!mcClient) return ctx.reply("⚠️ البوت غير متصل بالسيرفر حالياً.");
+    
     stopAntiAfkLoop();
     mcClient.disconnect();
     mcClient = null;
-    bot.sendMessage(chatId, "🛑 تم الخروج من السيرفر بنجاح.");
-};
-
-bot.on('message', (msg) => {
-    const text = msg.text;
-    const chatId = msg.chat.id;
-
-    if (text === '🟢 دخول السيرفر (Start)' || text === '/start_afk') {
-        startAfk(chatId);
-    } 
-    else if (text === '🔴 الخروج من السيرفر (Stop)' || text === '/stop_afk') {
-        stopAfk(chatId);
-    }
+    ctx.reply("🛑 تم الخروج من السيرفر بنجاح.");
 });
 
-console.log("🤖 البوت يعمل الآن!");
+bot.launch().then(() => console.log("🤖 البوت يعمل الآن بكفاءة!"));
+
+// إغلاق آمن للبوت عند إيقاف الخادم
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
