@@ -6,7 +6,7 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "bedrock-protocol": "latest",
-    "node-telegram-bot-api": "latest"
+    "bedrock-protocol": "^1.24.0",
+    "node-telegram-bot-api": "^0.66.0"
   }
 }
