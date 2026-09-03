@@ -10,7 +10,7 @@ const http = require('http');
 
 // ================= الإعدادات والمتغيرات =================
 // يفضل دائماً وضع التوكن في ملف .env أو إعدادات الاستضافة
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8882158605:AAF_HVfk3p5eev3KueWkveVNYUPXLtRi88Y';
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || '8882158605:AAF8806Nkn09L62spluqJyh4c1Oz2pUt8CM';
 let MC_SERVER_IP = process.env.MC_SERVER_IP || 'sweet_couple.aternos.me';
 let MC_SERVER_PORT = parseInt(process.env.MC_SERVER_PORT || '41806', 10);
 const BOT_USERNAME = process.env.BOT_USERNAME || 'AK7_Bot';
